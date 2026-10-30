@@ -8,7 +8,8 @@
 <link rel="stylesheet" href="assets/flipbook.css">
 <link rel="stylesheet" href="assets/intro.css">
 <link rel="preload" as="image" href="assets/intro/crazyos.webp" media="(min-width: 768px)">
-<link rel="preload" as="image" href="assets/intro/crazyos_m.webp" media="(max-width: 767px)">
+<link rel="preload" as="image" href="assets/intro/crazyos_p.webp" media="(max-width: 767px)">
+<link rel="preload" as="image" href="assets/pages/ms01.webp" media="(max-width: 767px)">
 </head>
 <body>
   <div class="bg-grid" aria-hidden="true"></div>
@@ -29,7 +30,9 @@
   </nav>
   <div class="hint" id="hint" aria-hidden="true">← → 鍵盤翻頁　｜　拖曳頁角翻頁</div>
 
-  <!-- Mobile: vertical scroll -->
+  <!-- Mobile: single-page swipe flip (9:16 pages) -->
+  <main class="mstage" id="mstage" hidden><div class="mshift" id="mshift"></div><div class="mtip" id="mtip">左右滑動翻頁・點一下放大</div></main>
+  <!-- Mobile fallback: vertical scroll -->
   <main class="scroll" id="scroll" hidden></main>
   <div class="lightbox" id="lb" hidden role="dialog" aria-label="頁面放大檢視">
     <div class="lb-stage" id="lbStage"><img id="lbImg" alt=""></div>

@@ -3,6 +3,8 @@
   var TOTAL=15, RATIO=9/16;
   function pad(n){return String(n).padStart(2,'0')}
   function src(i,big){return 'assets/pages/'+(big?'p':'m')+pad(i)+'.webp'}
+  function msrc(i,big){return 'assets/pages/'+(big?'mp':'ms')+pad(i)+'.webp'}
+  var MR=16/9; // mobile portrait page ratio (h/w)
   var mq=window.matchMedia('(max-width: 767px), (orientation: portrait) and (pointer: coarse)');
   var current=null;
 
@@ -103,8 +105,8 @@
     var lb=document.getElementById('lb'),img=document.getElementById('lbImg'),num=document.getElementById('lbNum'),tip=document.getElementById('lbTip'),stageEl=document.getElementById('lbStage');
     var page=1,s=1,tx=0,ty=0,bx=0,by=0,bw=0,bh=0,ptrs={},g=null,lastTap=0,lastX=0,lastY=0;
     function base(){
-      var vw=window.innerWidth,vh=window.innerHeight;bw=vw;bh=vw*RATIO;if(bh>vh){bh=vh;bw=vh/RATIO}
-      bx=(vw-bw)/2;by=(vh-bh)/2;
+      var vw=window.innerWidth,vh=window.innerHeight,TOP=64,av=vh-TOP-8;bw=vw;bh=vw*MR;if(bh>av){bh=av;bw=av/MR}
+      bx=(vw-bw)/2;by=TOP+(av-bh)/2;
       img.style.cssText='position:absolute;left:'+bx+'px;top:'+by+'px;width:'+bw+'px;height:'+bh+'px;max-height:none';
     }
     function clamp(){
@@ -114,9 +116,9 @@
     }
     function apply(anim){img.style.transition=anim?'transform .25s ease':'none';clamp();img.style.transform='translate('+tx+'px,'+ty+'px) scale('+s+')'}
     function zoomAt(px,py,ns,anim){var u=(px-bx-tx)/s,v=(py-by-ty)/s;s=Math.max(1,Math.min(5,ns));tx=px-bx-u*s;ty=py-by-v*s;apply(anim)}
-    function show(i){page=i;img.src=src(i,true);img.alt='第 '+i+' 頁';num.textContent=pad(i)+' / '+pad(TOTAL);s=1;tx=0;ty=0;base();apply(false)}
+    function show(i){page=i;img.src=msrc(i,true);img.alt='第 '+i+' 頁';num.textContent=pad(i)+' / '+pad(TOTAL);s=1;tx=0;ty=0;base();apply(false)}
     function open(i){lb.hidden=false;document.body.style.overflow='hidden';show(i);tip.style.opacity=1;setTimeout(function(){tip.style.opacity=0},2500)}
-    function close(){lb.hidden=true;document.body.style.overflow='';ptrs={};g=null}
+    function close(){var was=!lb.hidden;lb.hidden=true;document.body.style.overflow='';ptrs={};g=null;if(was&&typeof pf!=='undefined'&&pf&&pf.getCurrentPageIndex()!==page-1){pf.turnToPage(page-1);mupdate(page-1)}}
     function pts(){return Object.keys(ptrs).map(function(k){return ptrs[k]})}
     stageEl.addEventListener('pointerdown',function(e){
       stageEl.setPointerCapture&&stageEl.setPointerCapture(e.pointerId);
@@ -150,16 +152,64 @@
     document.getElementById('lbClose').onclick=close;
     document.addEventListener('keydown',function(e){if(lb.hidden)return;if(e.key==='Escape')close();else if(e.key==='ArrowRight'&&page<TOTAL)show(page+1);else if(e.key==='ArrowLeft'&&page>1)show(page-1)});
     window.addEventListener('resize',function(){if(!lb.hidden){base();apply(false)}});
+    /* single-page swipe flip (StPageFlip, portrait) */
+    var fstage=document.getElementById('mstage'),fbox=document.getElementById('mshift'),pf=null,mpw=0,mph=0,midx=0;
+    var ctr=document.getElementById('controls'),cur=document.getElementById('cur'),prevB=document.getElementById('prev'),nextB=document.getElementById('next');
+    function msize(){var vw=window.innerWidth,vh=window.innerHeight;var h=vh-52-66-env();mpw=Math.floor(Math.min(vw-20,h/MR));mph=Math.floor(mpw*MR)}
+    function env(){return 0}
+    function mupdate(i){midx=i;cur.textContent=pad(i+1);prevB.disabled=i<=0;nextB.disabled=i>=TOTAL-1}
+    function mbuild(at){
+      if(pf){try{pf.destroy()}catch(e){}pf=null}
+      msize();fbox.innerHTML='';var el=document.createElement('div');el.id='mbook';fbox.appendChild(el);
+      for(var i=1;i<=TOTAL;i++){var d=document.createElement('div');d.className='page mp';
+        d.innerHTML='<img src="'+msrc(i,false)+'" srcset="'+msrc(i,false)+' 1080w, '+msrc(i,true)+' 2160w" sizes="'+mpw+'px" alt="棠序問策網站作品集 第 '+i+' 頁" width="1080" height="1920" decoding="async"'+(i>3?' loading="lazy"':'')+'>';
+        el.appendChild(d)}
+      el.style.width=mpw+'px';el.style.height=mph+'px';
+      pf=new St.PageFlip(el,{width:mpw,height:mph,size:'fixed',showCover:false,usePortrait:true,autoSize:false,maxShadowOpacity:0.45,drawShadow:true,
+        flippingTime:650,mobileScrollSupport:false,swipeDistance:20,showPageCorners:false,disableFlipByClick:false,startPage:at||0});
+      pf.loadFromHTML(el.querySelectorAll('.page'));mupdate(at||0);
+      pf.on('flip',function(e){mupdate(e.data)});
+    }
+    // tap (no drag) on the page opens the zoom viewer
+    var tdown=null;
+    function onDown(e){tdown={x:e.clientX,y:e.clientY,t:Date.now()}}
+    function onUp(e){if(!tdown)return;if(e.pointerType==='touch'){tdown=null;return}var dx=e.clientX-tdown.x,dy=e.clientY-tdown.y,dt=Date.now()-tdown.t;tdown=null;
+      if(Math.abs(dx)<8&&Math.abs(dy)<8&&dt<350){open(pf?pf.getCurrentPageIndex()+1:1)}}
+    // own swipe handling: any horizontal flick or drag (>=36px) turns the page with StPageFlip's curl animation
+    var ts=null;
+    function tStart(e){var tp=document.getElementById('mtip');tp&&tp.classList.remove('show');if(e.touches.length!==1){ts=null;return}var t=e.touches[0];ts={x:t.clientX,y:t.clientY,t:Date.now()};e.stopPropagation();if(e.cancelable)e.preventDefault()}
+    function tMove(e){e.stopPropagation();if(e.cancelable)e.preventDefault()}
+    function tEnd(e){e.stopPropagation();if(e.cancelable)e.preventDefault();if(!ts||!pf)return;var t=e.changedTouches[0],dx=t.clientX-ts.x,dy=t.clientY-ts.y;ts=null;
+      if(Math.abs(dx)>=36&&Math.abs(dx)>Math.abs(dy)*1.2){var y=(t.clientY<window.innerHeight/2)?'top':'bottom';if(dx<0)pf.flipNext(y);else pf.flipPrev(y)}
+      else if(Math.abs(dx)<10&&Math.abs(dy)<10){open(pf.getCurrentPageIndex()+1)}}
+    function stopM(e){e.stopPropagation()}
+    function mKey(e){if(!lb.hidden||!pf)return;if(e.key==='ArrowRight'||e.key==='PageDown'){pf.flipNext('top');e.preventDefault()}else if(e.key==='ArrowLeft'||e.key==='PageUp'){pf.flipPrev('top');e.preventDefault()}}
+    var mrt;function onResize(){clearTimeout(mrt);mrt=setTimeout(function(){if(current===mob&&lb.hidden)mbuild(pf?pf.getCurrentPageIndex():0)},200)}
+    var fallback=false;
     function build(){
       if(built)return;built=true;var html='';
       for(var i=1;i<=TOTAL;i++){
-        html+='<figure class="mpage" data-i="'+i+'"><img src="'+src(i,false)+'" srcset="'+src(i,false)+' 1600w, '+src(i,true)+' 3200w" sizes="100vw" alt="棠序問策網站作品集 第 '+i+' 頁" width="1600" height="900"'+(i>2?' loading="lazy"':'')+' decoding="async"><span class="num">'+pad(i)+' / '+pad(TOTAL)+'</span></figure>';
+        html+='<figure class="mpage" data-i="'+i+'"><img src="'+msrc(i,false)+'" srcset="'+msrc(i,false)+' 1080w, '+msrc(i,true)+' 2160w" sizes="100vw" alt="棠序問策網站作品集 第 '+i+' 頁" width="1080" height="1920"'+(i>2?' loading="lazy"':'')+' decoding="async"><span class="num">'+pad(i)+' / '+pad(TOTAL)+'</span></figure>';
       }
       html+='<div class="mfoot"><a href="https://tangxuai.org/" target="_blank" rel="noopener">tangxuai.org</a></div>';
       wrap.innerHTML=html;
       wrap.addEventListener('click',function(e){var f=e.target.closest('.mpage');if(f)open(+f.dataset.i)});
     }
-    return {start:function(){build();wrap.hidden=false},stop:function(){close();wrap.hidden=true},open:open,state:function(){return {s:s,tx:tx,ty:ty,page:page,open:!lb.hidden}},zoomAt:zoomAt};
+    var mbound=false;
+    function start(){
+      if(!window.St||!St.PageFlip){fallback=true;build();wrap.hidden=false;return}
+      document.body.classList.add('mflip');fstage.hidden=false;ctr.hidden=false;document.getElementById('total').textContent=pad(TOTAL);
+      mbuild(0);
+      fbox.addEventListener('pointerdown',onDown,true);fbox.addEventListener('pointerup',onUp,true);
+      fbox.addEventListener('touchstart',tStart,{capture:true,passive:false});fbox.addEventListener('touchmove',tMove,{capture:true,passive:false});fbox.addEventListener('touchend',tEnd,{capture:true,passive:false});fbox.addEventListener('mousedown',stopM,true);document.addEventListener('keydown',mKey);
+      prevB.onclick=function(){pf&&pf.flipPrev('top')};nextB.onclick=function(){pf&&pf.flipNext('top')};
+      window.addEventListener('resize',onResize);
+      var tip=document.getElementById('mtip');function run(){setTimeout(function(){tip.classList.add('show')},500);setTimeout(function(){tip.classList.remove('show')},4000)}
+      if(window.__intro&&window.__intro.root.isConnected)document.addEventListener('tx:intro-done',run,{once:true});else run();
+    }
+    function stop(){close();wrap.hidden=true;if(pf){try{pf.destroy()}catch(e){}pf=null}fbox.innerHTML='';fstage.hidden=true;ctr.hidden=true;document.body.classList.remove('mflip');
+      fbox.removeEventListener('pointerdown',onDown,true);fbox.removeEventListener('pointerup',onUp,true);fbox.removeEventListener('touchstart',tStart,true);fbox.removeEventListener('touchmove',tMove,true);fbox.removeEventListener('touchend',tEnd,true);fbox.removeEventListener('mousedown',stopM,true);document.removeEventListener('keydown',mKey);window.removeEventListener('resize',onResize)}
+    return {start:start,stop:stop,open:open,api:function(){return {pf:pf,pw:mpw,ph:mph,index:midx,fallback:fallback}},state:function(){return {s:s,tx:tx,ty:ty,page:page,open:!lb.hidden}},zoomAt:zoomAt};
   })();
 
   function choose(){

@@ -38,9 +38,19 @@ body.desk{overflow:hidden}
 .mfoot{text-align:center;padding:18px 0 8px}
 .mfoot a{color:var(--lime);font-weight:700;text-decoration:none;font-size:14px}
 /* lightbox */
-.lightbox{position:fixed;inset:0;z-index:50;background:rgba(5,6,6,.97);touch-action:none}
+.lightbox{position:fixed;inset:0;z-index:50;background:#050606;touch-action:none}
 .lb-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .lb-stage img{width:100%;height:auto;max-height:100%;object-fit:contain;transform-origin:0 0;user-select:none;-webkit-user-drag:none}
 .lb-close{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;width:40px;height:40px;border-radius:50%;border:1.5px solid var(--lime);background:rgba(11,13,12,.8);color:var(--lime);font-size:18px;font-weight:700;cursor:pointer}
-.lb-num{position:absolute;top:calc(20px + env(safe-area-inset-top));left:16px;color:var(--lime);font-weight:800;font-size:13px;letter-spacing:.08em}
-.lb-tip{position:absolute;bottom:calc(22px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);color:#aab3a5;font-size:12px;background:rgba(20,23,22,.85);padding:6px 12px;border-radius:999px;transition:opacity .6s}
+.lb-num{position:absolute;top:calc(24px + env(safe-area-inset-top));left:16px;color:var(--lime);font-weight:800;font-size:13px;letter-spacing:.08em}
+.lb-tip{position:absolute;top:calc(20px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);color:#aab3a5;font-size:12px;background:rgba(20,23,22,.85);padding:6px 12px;border-radius:999px;transition:opacity .6s}
+
+/* mobile single-page flip */
+body.mflip{overflow:hidden;height:100%;overscroll-behavior:none}
+.mstage{position:fixed;left:0;right:0;top:52px;bottom:calc(64px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center;z-index:1;touch-action:none}
+.mshift{position:relative}
+.page.mp{background:#111214;border-radius:6px}
+body.mflip .controls{bottom:calc(10px + env(safe-area-inset-bottom))}
+body.mflip #mode,body.mflip #fs,body.mflip .sep{display:none}
+.mtip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:7px 14px;border-radius:999px;background:rgba(10,12,11,.85);border:1px solid rgba(182,242,58,.3);color:#cfd6ca;font-size:12px;letter-spacing:.04em;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .6s}
+.mtip.show{opacity:1}
